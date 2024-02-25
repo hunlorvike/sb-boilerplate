@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5656/sb_boilerplate
+    username: user_boilerplate
+    password: pass_boilerplate
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: true
+    show-sql: true
+    properties:
+      hibernate.format_sql: true
+
+app:
+  url: http://localhost:${server.port}
+  secret: aLongSecretStringWhoseBitnessIsEqualToOrGreaterThanTheBitnessOfTheTokenEncryptionAlgorithm
+  jwt:
+    token:
+      expires-in: 3600000
+    refresh-token:
+      expires-in: 86400000
+    remember-me:
+      expires-in: 604800000
+
