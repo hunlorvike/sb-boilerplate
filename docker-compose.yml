@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  postgres:
+    container_name: pg-sb-boilerplate
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: sb_boilerplate
+      POSTGRES_USER: user_boilerplate
+      POSTGRES_PASSWORD: pass_boilerplate
+    ports:
+      - "5656:5432"
+    security_opt:
+      - seccomp:unconfined
+    restart: always
