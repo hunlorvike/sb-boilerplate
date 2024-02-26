@@ -1,6 +1,5 @@
 package hun.lorvike.boilerplate.configurations.interceptors;
 
-
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +13,7 @@ import java.util.UUID;
 @Component
 @Slf4j
 public class RequestLoggerFilter implements Filter {
+
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
         UUID uniqueId = UUID.randomUUID();
@@ -29,4 +29,5 @@ public class RequestLoggerFilter implements Filter {
         responseWrapper.copyBodyToResponse();
         log.info("Response header is set with uuid {}", responseWrapper.getHeader("requestId"));
     }
+    
 }
