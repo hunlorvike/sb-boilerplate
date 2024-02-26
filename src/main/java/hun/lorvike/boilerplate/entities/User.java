@@ -85,14 +85,14 @@ public class User implements UserDetails {
     public static UserDetails build(User user) {
         List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
-        return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
-                user.getPassword(),
-                user.isEnabled(),
-                true,
-                true,
-                true,
-                authorities
-        );
+        return org.springframework.security.core.userdetails.User.withDefaultPasswordEncoder()
+                .username(user.getEmail())
+                .password(user.getPassword())
+                .roles(user.getRole().name())
+                .disabled(!user.isEnabled())
+                .accountExpired(true)
+                .credentialsExpired(true)
+                .accountLocked(true)
+                .build();
     }
 }

@@ -2,6 +2,8 @@ server:
   port: 8080
 
 spring:
+  main:
+    allow-circular-references: true
   datasource:
     url: jdbc:postgresql://localhost:5656/sb_boilerplate
     username: user_boilerplate
@@ -24,4 +26,6 @@ app:
       expires-in: 86400000
     remember-me:
       expires-in: 604800000
+  default-locale: en
+  default-timezone: Asia/Ho_Chi_Minh
 
