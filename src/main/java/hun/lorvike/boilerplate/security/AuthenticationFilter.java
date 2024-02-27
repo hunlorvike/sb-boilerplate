@@ -62,6 +62,8 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                         log.info("User {} successfully authenticated", username);
                     } else {
                         log.warn("Authentication failed for user {}", username);
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied: User does not have the required permissions");
+                        return;
                     }
                 }
             }

@@ -1,7 +1,7 @@
 package hun.lorvike.boilerplate.security;
 
 import hun.lorvike.boilerplate.entities.User;
-import hun.lorvike.boilerplate.repositories.UserRepository;
+import hun.lorvike.boilerplate.repositories.IUserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
@@ -17,7 +17,6 @@ import java.util.Date;
 import java.util.Optional;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +24,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class JwtService implements IJwtService {
 
-	private final UserRepository userRepository;
+	private final IUserRepository IUserRepository;
 	private final SecretKey secretKey;
 	private final Long expirationToken;
 	private final Long expirationRefreshToken;
@@ -33,13 +32,13 @@ public class JwtService implements IJwtService {
 	private final HttpServletRequest httpServletRequest;
 
 	public JwtService(
-			UserRepository userRepository,
+			IUserRepository IUserRepository,
 			@Value("${app.secret}") String secretKey,
 			@Value("${app.jwt.token.expires-in}") Long expirationToken,
 			@Value("${app.jwt.refresh-token.expires-in}") Long expirationRefreshToken,
 			@Value("${app.jwt.remember-me.expires-in}") Long expirationRememberMe,
 			HttpServletRequest httpServletRequest) {
-		this.userRepository = userRepository;
+		this.IUserRepository = IUserRepository;
 		this.secretKey = Keys.hmacShaKeyFor(secretKey.getBytes());
 		this.expirationToken = expirationToken;
 		this.expirationRefreshToken = expirationRefreshToken;
@@ -51,9 +50,9 @@ public class JwtService implements IJwtService {
 	public String generateToken(UserDetails userDetails) {
 		Date now = new Date();
 		Date expiryDate = new Date(now.getTime() + expirationToken);
+		log.trace("Token is added to the local cache for username: {}", userDetails.getUsername());
 
-		return Jwts
-				.builder()
+		return Jwts.builder()
 				.setSubject(userDetails.getUsername())
 				.setIssuedAt(now)
 				.setExpiration(expiryDate)
@@ -66,6 +65,7 @@ public class JwtService implements IJwtService {
 	public String generateRefreshToken(UserDetails userDetails) {
 		Date now = new Date();
 		Date expiryDate = new Date(now.getTime() + expirationRefreshToken);
+		log.trace("Token is added to the local cache for username: {}", userDetails.getUsername());
 
 		return Jwts
 				.builder()
@@ -84,7 +84,7 @@ public class JwtService implements IJwtService {
 			if (username != null && validateRefreshToken(refreshToken, username)) {
 				Claims claims = getClaims(refreshToken);
 				if (claims.get("type").equals("refresh_token")) {
-					Optional<User> userOptional = userRepository.findByEmail(username);
+					Optional<User> userOptional = IUserRepository.findByEmail(username);
 					if (userOptional.isPresent()) {
 						User user = userOptional.get();
 						return generateToken(User.build(user));
@@ -142,7 +142,7 @@ public class JwtService implements IJwtService {
 
 	@Override
 	public String removeBearerPrefix(String token) {
-		if (token.startsWith("Bearer ")) {
+		if (token != null && token.startsWith("Bearer ")) {
 			return token.substring(7);
 		}
 		return token;
