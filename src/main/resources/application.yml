@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  application:
+    name: Spring Boilerplate
+    description: Boilerplate
+    version: 1.0
   main:
     allow-circular-references: true
   datasource:
@@ -28,4 +32,15 @@ app:
       expires-in: 604800000
   default-locale: en
   default-timezone: Asia/Ho_Chi_Minh
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    path: /swagger-ui
+  show-actuator: true
 

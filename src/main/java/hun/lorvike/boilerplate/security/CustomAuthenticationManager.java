@@ -25,14 +25,10 @@ import java.util.Optional;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class CustomAuthenticationManager implements AuthenticationManager {
     private final PasswordEncoder passwordEncoder;
     private final IUserRepository IUserRepository;
-
-    public CustomAuthenticationManager(PasswordEncoder passwordEncoder, hun.lorvike.boilerplate.repositories.IUserRepository iUserRepository) {
-        this.passwordEncoder = passwordEncoder;
-        this.IUserRepository = iUserRepository;
-    }
 
     @Override
     @Transactional
@@ -41,10 +37,12 @@ public class CustomAuthenticationManager implements AuthenticationManager {
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
-            boolean matches = passwordEncoder.matches(authentication.getCredentials().toString(), user.getPassword());
+            UserDetails userDetails = User.build(user);
+
+            boolean matches = authentication.getCredentials() != null &&
+                    authentication.getCredentials().equals(userDetails.getPassword());
 
             if (matches) {
-                UserDetails userDetails = User.build(user);
                 List<SimpleGrantedAuthority> authorities = Collections.singletonList(
                         new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
@@ -61,4 +59,5 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             throw new UsernameNotFoundException("Không tìm thấy người dùng với email: " + authentication.getName());
         }
     }
+
 }

@@ -50,7 +50,7 @@ public class WebSecurityConfig {
 
     private static final String[] PUBLIC_URLS = {
             "/",
-            "/auth/**",
+            "/api/auth/**",
             "/public/**",
             "/assets/**",
             "/api-docs/**",

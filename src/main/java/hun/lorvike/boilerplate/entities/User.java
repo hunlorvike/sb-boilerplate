@@ -25,7 +25,7 @@ public class User implements UserDetails {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "agency_id", nullable = false)
+    @JoinColumn(name = "agency_id", nullable = true)
     private Agency agency;
 
     private String name;
@@ -38,7 +38,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private ERole role = ERole.USER;
 
-    @Column(name = "refresh_token", nullable = false)
+    @Column(name = "refresh_token", nullable = true)
     private String refreshToken;
 
     @CreationTimestamp
@@ -85,7 +85,7 @@ public class User implements UserDetails {
     public static UserDetails build(User user) {
         List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
-        return org.springframework.security.core.userdetails.User.withDefaultPasswordEncoder()
+        return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
                 .password(user.getPassword())
                 .roles(user.getRole().name())

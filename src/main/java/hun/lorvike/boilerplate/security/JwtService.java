@@ -11,6 +11,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
+@Data
 public class JwtService implements IJwtService {
 
 	private final IUserRepository IUserRepository;

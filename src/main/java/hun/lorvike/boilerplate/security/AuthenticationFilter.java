@@ -54,15 +54,24 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
                 if (userOptional.isPresent()) {
                     UserDetails userDetails = User.build(userOptional.get());
-                    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                    Authentication authenticated = authenticationManager.authenticate(authentication);
+                    Authentication authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, userDetails.getPassword(), userDetails.getAuthorities());
 
-                    if (authenticated.isAuthenticated()) {
-                        SecurityContextHolder.getContext().setAuthentication(authenticated);
-                        log.info("User {} successfully authenticated", username);
-                    } else {
-                        log.warn("Authentication failed for user {}", username);
-                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access denied: User does not have the required permissions");
+                    try {
+                        Authentication authenticated = authenticationManager.authenticate(authentication);
+
+                        if (authenticated.isAuthenticated()) {
+                            SecurityContextHolder.getContext().setAuthentication(authenticated);
+                            log.info("User {} successfully authenticated", username);
+                        } else {
+                            log.warn("Authentication failed for user {}", username);
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                                    "Access denied: User does not have the required permissions");
+                            return;
+                        }
+                    } catch (AuthenticationException e) {
+                        log.warn("Authentication failed for user {}: {}", username, e.getMessage());
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
                         return;
                     }
                 }
@@ -75,14 +84,11 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             log.warn("Invalid JWT token: {}", e.getMessage());
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
             return;
-        } catch (AuthenticationException e) {
-            log.warn("Authentication failed: {}", e.getMessage());
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
-            return;
         }
 
         filterChain.doFilter(request, response);
-        log.info(request.getRemoteAddr());
+        log.info("Request from {}", request.getRemoteAddr());
     }
+
 
 }
