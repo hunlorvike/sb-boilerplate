@@ -6,8 +6,6 @@ import java.util.Optional;
 import hun.lorvike.boilerplate.entities.User;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,65 +22,38 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.lang.NonNull;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class AuthenticationFilter extends OncePerRequestFilter {
     private final IJwtService iJwtService;
-    private final IUserRepository IUserRepository;
+    private final IUserRepository userRepository;
     private final AuthenticationManager authenticationManager;
-
-    @Autowired
-    public AuthenticationFilter(IJwtService iJwtService, hun.lorvike.boilerplate.repositories.IUserRepository iUserRepository, AuthenticationManager authenticationManager) {
-        this.iJwtService = iJwtService;
-        IUserRepository = iUserRepository;
-        this.authenticationManager = authenticationManager;
-    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain)
+            @NonNull FilterChain filterChain)
             throws ServletException, IOException {
         try {
             String token = iJwtService.extractJwtFromRequest(request);
 
             if (StringUtils.hasText(token) && iJwtService.validateToken(token, request)) {
                 String username = iJwtService.extractUsername(token);
-                Optional<User> userOptional = IUserRepository.findByEmail(username);
+                Optional<User> userOptional = userRepository.findByEmail(username);
 
                 if (userOptional.isPresent()) {
-                    UserDetails userDetails = User.build(userOptional.get());
-                    Authentication authentication = new UsernamePasswordAuthenticationToken(
-                            userDetails, userDetails.getPassword(), userDetails.getAuthorities());
-
-                    try {
-                        Authentication authenticated = authenticationManager.authenticate(authentication);
-
-                        if (authenticated.isAuthenticated()) {
-                            SecurityContextHolder.getContext().setAuthentication(authenticated);
-                            log.info("User {} successfully authenticated", username);
-                        } else {
-                            log.warn("Authentication failed for user {}", username);
-                            response.sendError(HttpServletResponse.SC_FORBIDDEN,
-                                    "Access denied: User does not have the required permissions");
-                            return;
-                        }
-                    } catch (AuthenticationException e) {
-                        log.warn("Authentication failed for user {}: {}", username, e.getMessage());
-                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
-                        return;
-                    }
+                    performAuthentication(request, response, userOptional.get());
                 }
             }
         } catch (ExpiredJwtException e) {
-            log.warn("JWT token expired for user {}", e.getClaims().getSubject());
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "JWT token expired");
+            handleJwtException(response, "JWT token expired", e.getClaims().getSubject());
             return;
         } catch (JwtException e) {
-            log.warn("Invalid JWT token: {}", e.getMessage());
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
+            handleJwtException(response, "Invalid JWT token", e.getMessage());
             return;
         }
 
@@ -90,5 +61,33 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         log.info("Request from {}", request.getRemoteAddr());
     }
 
+    private void performAuthentication(HttpServletRequest request, HttpServletResponse response, User user)
+            throws IOException {
+        UserDetails userDetails = User.build(user);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, userDetails.getPassword(), userDetails.getAuthorities());
 
+        try {
+            Authentication authenticated = authenticationManager.authenticate(authentication);
+
+            if (authenticated.isAuthenticated()) {
+                SecurityContextHolder.getContext().setAuthentication(authenticated);
+                request.setAttribute("user", user);
+                log.info("User {} successfully authenticated", user.getEmail());
+            } else {
+                log.warn("Authentication failed for user {}", user.getEmail());
+                response.sendError(HttpServletResponse.SC_FORBIDDEN,
+                        "Access denied: User does not have the required permissions");
+            }
+        } catch (AuthenticationException e) {
+            log.warn("Authentication failed for user {}: {}", user.getEmail(), e.getMessage());
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
+        }
+    }
+
+    private void handleJwtException(HttpServletResponse response, String errorMessage, String subject)
+            throws IOException {
+        log.warn("{} for user {}", errorMessage, subject);
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, errorMessage);
+    }
 }

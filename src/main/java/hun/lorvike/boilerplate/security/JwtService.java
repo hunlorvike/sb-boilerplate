@@ -244,7 +244,6 @@ public class JwtService implements IJwtService {
 
 	@Override
 	public boolean revokeToken(String token) {
-		// TODO Auto-generated method stub
 		throw new UnsupportedOperationException("Unimplemented method 'revokeToken'");
 	}
 

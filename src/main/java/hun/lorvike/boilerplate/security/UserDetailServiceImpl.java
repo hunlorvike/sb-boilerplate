@@ -43,6 +43,7 @@ public class UserDetailServiceImpl implements UserDetailsService {
                 .accountExpired(true)
                 .credentialsExpired(true)
                 .accountLocked(true)
+                .authorities(authorities)
                 .build();
     }
 }

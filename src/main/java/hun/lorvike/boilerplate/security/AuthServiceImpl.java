@@ -9,7 +9,7 @@ import hun.lorvike.boilerplate.repositories.IUserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,19 +24,20 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthServiceImpl implements IAuthService {
-    private final IUserRepository iUserRepository;
+    private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final IJwtService iJwtService;
-    private final AuthenticationManager authenticationManager;
+    private final IJwtService jwtService;
 
     @Override
     @Transactional(rollbackOn = Exception.class)
     public User registerUser(RegisterDto registerDto) {
         try {
-            Optional<User> userOptional = iUserRepository.findByEmail(registerDto.getEmail());
+            log.info("Attempting to register user with email: {}", registerDto.getEmail());
+            Optional<User> userOptional = userRepository.findByEmail(registerDto.getEmail());
 
             if (userOptional.isPresent()) {
-                throw new IllegalArgumentException("User with the provided email already exists");
+                log.error("User with email {} already exists.", registerDto.getEmail());
+                throw new DataIntegrityViolationException("User with the provided email already exists");
             }
 
             User newUser = new User();
@@ -46,11 +47,12 @@ public class AuthServiceImpl implements IAuthService {
             newUser.setRole(ERole.USER);
             newUser.setAgency(null);
 
-            User savedUser = iUserRepository.save(newUser);
+            User savedUser = userRepository.save(newUser);
             UserDetails userDetails = User.build(savedUser);
 
-            String refreshToken = iJwtService.generateRefreshToken(userDetails);
+            String refreshToken = jwtService.generateRefreshToken(userDetails);
             savedUser.setRefreshToken(refreshToken);
+            log.info("User registered successfully with email: {}", registerDto.getEmail());
             return savedUser;
 
         } catch (Exception e) {
@@ -61,7 +63,8 @@ public class AuthServiceImpl implements IAuthService {
     @Override
     public ResLoginDto authenticateUser(LoginDto loginDto) {
         try {
-            Optional<User> userOptional = iUserRepository.findByEmail(loginDto.getEmail());
+            log.info("Attempting to authenticate user with email: {}", loginDto.getEmail());
+            Optional<User> userOptional = userRepository.findByEmail(loginDto.getEmail());
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
                 UserDetails userDetails = User.build(user);
@@ -71,8 +74,8 @@ public class AuthServiceImpl implements IAuthService {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                String accessToken = iJwtService.generateToken(userDetails);
-                String refreshToken = iJwtService.generateRefreshToken(userDetails);
+                String accessToken = jwtService.generateToken(userDetails);
+                String refreshToken = jwtService.generateRefreshToken(userDetails);
 
                 Date now = new Date();
                 long expirationTime = 3600000L;
@@ -84,12 +87,13 @@ public class AuthServiceImpl implements IAuthService {
                 resLoginDto.setTokenType("Bearer");
                 resLoginDto.setExpiresIn(expirationDate.getTime());
 
+                log.info("User authenticated successfully with email: {}", loginDto.getEmail());
                 return resLoginDto;
             }
         } catch (Exception e) {
+            log.error("Authentication failed for user with email: {}", loginDto.getEmail(), e);
             throw new RuntimeException("Authentication failed", e);
         }
         return null;
     }
-
 }

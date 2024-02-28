@@ -93,6 +93,7 @@ public class User implements UserDetails {
                 .accountExpired(true)
                 .credentialsExpired(true)
                 .accountLocked(true)
+                .authorities(authorities)
                 .build();
     }
 }

@@ -1,7 +1,6 @@
 package hun.lorvike.boilerplate.security;
 
 import jakarta.transaction.Transactional;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -11,7 +10,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import hun.lorvike.boilerplate.entities.User;
@@ -27,7 +25,6 @@ import java.util.Optional;
 @Slf4j
 @RequiredArgsConstructor
 public class CustomAuthenticationManager implements AuthenticationManager {
-    private final PasswordEncoder passwordEncoder;
     private final IUserRepository IUserRepository;
 
     @Override
@@ -52,12 +49,11 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                 return authenticationToken;
             } else {
                 log.error("Authentication failed for {}", authentication.getName());
-                throw new BadCredentialsException("Mật khẩu không đúng.");
+                throw new BadCredentialsException("Incorrect password.");
             }
         } else {
             log.error("User not found for email {}", authentication.getName());
-            throw new UsernameNotFoundException("Không tìm thấy người dùng với email: " + authentication.getName());
+            throw new UsernameNotFoundException("User not found with email: " + authentication.getName());
         }
     }
-
 }

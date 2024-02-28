@@ -2,7 +2,6 @@ package hun.lorvike.boilerplate.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 
 import org.springframework.security.core.AuthenticationException;
@@ -24,12 +23,15 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             errorMessage = authException.getMessage();
         } else {
             switch (attribute) {
-                case "expired" -> errorMessage = "Token hết hạn. Vui lòng đăng nhập lại.";
-                case "unsupported" -> errorMessage = "Token không được hỗ trợ.";
-                case "invalid", "illegal" -> errorMessage = "Token không hợp lệ.";
-                case "notfound" -> errorMessage = "Token không tồn tại.";
-                case "blocked" -> errorMessage = "Tài khoản của bạn đã bị khóa.";
-                case "disabled" -> errorMessage = "Tài khoản của bạn đã bị vô hiệu hóa.";
+                case "expired" -> errorMessage = "Token has expired. Please log in again.";
+                case "unsupported" -> errorMessage = "Unsupported token.";
+                case "invalid", "illegal" -> errorMessage = "Invalid token.";
+                case "notfound" -> errorMessage = "Token not found.";
+                case "blocked" -> errorMessage = "Your account has been blocked.";
+                case "disabled" -> errorMessage = "Your account has been disabled.";
+                case "credentials_expired" -> errorMessage = "Password has expired. Please update your password.";
+                case "account_locked" -> errorMessage = "Account locked. Please contact the administrator.";
+                case "account_disabled" -> errorMessage = "Account disabled. Please contact the administrator.";
                 default -> errorMessage = authException.getMessage();
             }
         }
