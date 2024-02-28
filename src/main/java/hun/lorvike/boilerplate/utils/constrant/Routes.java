@@ -15,4 +15,8 @@ public class Routes {
     public static final String ROLE_USER = TEST + ROLE + "/user";
     public static final String ROLE_MANAGER = TEST + ROLE + "/manager";
     public static final String ROLE_ADMIN = TEST + ROLE + "/admin";
+
+    private Routes() {
+        throw new IllegalStateException("Utility class");
+    }
 }

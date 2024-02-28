@@ -1,5 +1,6 @@
 package hun.lorvike.boilerplate.security;
 
+import hun.lorvike.boilerplate.configurations.JwtConfig;
 import hun.lorvike.boilerplate.entities.User;
 import hun.lorvike.boilerplate.repositories.IUserRepository;
 import io.jsonwebtoken.Claims;
@@ -17,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Date;
 import java.util.Optional;
 import javax.crypto.SecretKey;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 @Data
 public class JwtService implements IJwtService {
 
-	private final IUserRepository IUserRepository;
+	private final IUserRepository userRepository;
 	private final SecretKey secretKey;
 	private final Long expirationToken;
 	private final Long expirationRefreshToken;
@@ -34,49 +34,30 @@ public class JwtService implements IJwtService {
 	private final HttpServletRequest httpServletRequest;
 
 	public JwtService(
-			IUserRepository IUserRepository,
-			@Value("${app.secret}") String secretKey,
-			@Value("${app.jwt.token.expires-in}") Long expirationToken,
-			@Value("${app.jwt.refresh-token.expires-in}") Long expirationRefreshToken,
-			@Value("${app.jwt.remember-me.expires-in}") Long expirationRememberMe,
+			IUserRepository userRepository,
+			JwtConfig jwtConfig,
 			HttpServletRequest httpServletRequest) {
-		this.IUserRepository = IUserRepository;
-		this.secretKey = Keys.hmacShaKeyFor(secretKey.getBytes());
-		this.expirationToken = expirationToken;
-		this.expirationRefreshToken = expirationRefreshToken;
-		this.expirationRememberMe = expirationRememberMe;
+		this.userRepository = userRepository;
+		this.secretKey = Keys.hmacShaKeyFor(jwtConfig.getSecretKey().getBytes());
+		this.expirationToken = jwtConfig.getExpirationToken();
+		this.expirationRefreshToken = jwtConfig.getExpirationRefreshToken();
+		this.expirationRememberMe = jwtConfig.getExpirationRememberMe();
 		this.httpServletRequest = httpServletRequest;
 	}
 
 	@Override
 	public String generateToken(UserDetails userDetails) {
-		Date now = new Date();
-		Date expiryDate = new Date(now.getTime() + expirationToken);
-		log.trace("Token is added to the local cache for username: {}", userDetails.getUsername());
-
-		return Jwts.builder()
-				.setSubject(userDetails.getUsername())
-				.setIssuedAt(now)
-				.setExpiration(expiryDate)
-				.claim("type", "access_token")
-				.signWith(secretKey, SignatureAlgorithm.HS512)
-				.compact();
+		return buildToken(userDetails, "access_token", expirationToken);
 	}
 
 	@Override
 	public String generateRefreshToken(UserDetails userDetails) {
-		Date now = new Date();
-		Date expiryDate = new Date(now.getTime() + expirationRefreshToken);
-		log.trace("Token is added to the local cache for username: {}", userDetails.getUsername());
+		return buildToken(userDetails, "refresh_token", expirationRefreshToken);
+	}
 
-		return Jwts
-				.builder()
-				.setSubject(userDetails.getUsername())
-				.setIssuedAt(now)
-				.setExpiration(expiryDate)
-				.claim("type", "refresh_token")
-				.signWith(secretKey, SignatureAlgorithm.HS512)
-				.compact();
+	@Override
+	public String generateRememberMe(UserDetails userDetails) {
+		return buildToken(userDetails, "remember_me_token", expirationRememberMe);
 	}
 
 	@Override
@@ -86,7 +67,7 @@ public class JwtService implements IJwtService {
 			if (username != null && validateRefreshToken(refreshToken, username)) {
 				Claims claims = getClaims(refreshToken);
 				if (claims.get("type").equals("refresh_token")) {
-					Optional<User> userOptional = IUserRepository.findByEmail(username);
+					Optional<User> userOptional = userRepository.findByEmail(username);
 					if (userOptional.isPresent()) {
 						User user = userOptional.get();
 						return generateToken(User.build(user));
@@ -113,29 +94,14 @@ public class JwtService implements IJwtService {
 	}
 
 	@Override
-	public String generateRememberMe(UserDetails userDetails) {
-		Date now = new Date();
-		Date expiryDate = new Date(now.getTime() + expirationRememberMe);
-
-		return Jwts
-				.builder()
-				.setSubject(userDetails.getUsername())
-				.setIssuedAt(now)
-				.setExpiration(expiryDate)
-				.claim("type", "remember_me_token")
-				.signWith(secretKey, SignatureAlgorithm.HS512)
-				.compact();
-	}
-
-	@Override
 	public Claims getClaims(String token) {
 		try {
 			return Jwts
 					.parser()
-					.setSigningKey(secretKey)
+					.verifyWith(secretKey)
 					.build()
 					.parseClaimsJws(removeBearerPrefix(token))
-					.getBody();
+					.getPayload();
 		} catch (Exception e) {
 			log.error("Error parsing claims from JWT: {}", e.getMessage());
 			throw new RuntimeException("Error parsing claims from JWT", e);
@@ -144,16 +110,13 @@ public class JwtService implements IJwtService {
 
 	@Override
 	public String removeBearerPrefix(String token) {
-		if (token != null && token.startsWith("Bearer ")) {
-			return token.substring(7);
-		}
-		return token;
+		return (token != null && token.startsWith("Bearer ")) ? token.substring(7) : token;
 	}
 
 	@Override
 	public boolean validateToken(String token) {
 		try {
-			Jwts.parser().setSigningKey(secretKey).build().parseClaimsJws(token);
+			Jwts.parser().verifyWith(secretKey).build().parseClaimsJws(token);
 			return true;
 		} catch (Exception e) {
 			log.warn("Invalid JWT token: {}", e.getMessage());
@@ -184,26 +147,26 @@ public class JwtService implements IJwtService {
 	public boolean validateToken(String token, HttpServletRequest request) {
 		try {
 			boolean isTokenValid = validateToken(token);
-			if(!isTokenValid) {
+			if (!isTokenValid) {
 				log.error("[JWT] Token could not found in local cache");
-                httpServletRequest.setAttribute("notfound", "Token is not found in cache");
+				httpServletRequest.setAttribute("notfound", "Token is not found in cache");
 			}
 			return isTokenValid;
 		} catch (UnsupportedJwtException e) {
-            log.error("[JWT] Unsupported JWT token!");
-            httpServletRequest.setAttribute("unsupported", "Unsupported JWT token!");
-        } catch (MalformedJwtException e) {
-            log.error("[JWT] Invalid JWT token!");
-            httpServletRequest.setAttribute("invalid", "Invalid JWT token!");
-        } catch (ExpiredJwtException e) {
-            log.error("[JWT] Expired JWT token!");
-            httpServletRequest.setAttribute("expired", "Expired JWT token!");
-        } catch (IllegalArgumentException e) {
-            log.error("[JWT] Jwt claims string is empty");
-            httpServletRequest.setAttribute("illegal", "JWT claims string is empty.");
-        }
+			log.error("[JWT] Unsupported JWT token!");
+			httpServletRequest.setAttribute("unsupported", "Unsupported JWT token!");
+		} catch (MalformedJwtException e) {
+			log.error("[JWT] Invalid JWT token!");
+			httpServletRequest.setAttribute("invalid", "Invalid JWT token!");
+		} catch (ExpiredJwtException e) {
+			log.error("[JWT] Expired JWT token!");
+			httpServletRequest.setAttribute("expired", "Expired JWT token!");
+		} catch (IllegalArgumentException e) {
+			log.error("[JWT] Jwt claims string is empty");
+			httpServletRequest.setAttribute("illegal", "JWT claims string is empty.");
+		}
 
-        return false;
+		return false;
 	}
 
 	@Override
@@ -234,12 +197,23 @@ public class JwtService implements IJwtService {
 
 	@Override
 	public Jws<Claims> parseToken(String token) {
-		return Jwts.parser().setSigningKey(secretKey).build().parseClaimsJws(removeBearerPrefix(token));
+		try {
+			return Jwts.parser().verifyWith(secretKey).build().parseClaimsJws(removeBearerPrefix(token));
+		} catch (Exception e) {
+			log.error("Error parsing JWT token: {}", e.getMessage(), e);
+			throw new RuntimeException("Error parsing JWT token", e);
+		}
 	}
 
 	@Override
 	public boolean isTokenExpired(String token) {
-		return parseToken(token).getBody().getExpiration().before(new Date());
+		try {
+			Claims claims = parseToken(token).getPayload();
+			return claims.getExpiration().before(new Date());
+		} catch (Exception e) {
+			log.error("Error checking token expiration: {}", e.getMessage(), e);
+			throw new RuntimeException("Error checking token expiration", e);
+		}
 	}
 
 	@Override
@@ -261,6 +235,20 @@ public class JwtService implements IJwtService {
 			log.error("Error refreshing access token if expired", e);
 			throw new RuntimeException("Error refreshing access token if expired", e);
 		}
+	}
+
+	private String buildToken(UserDetails userDetails, String type, Long expiration) {
+		Date now = new Date();
+		Date expiryDate = new Date(now.getTime() + expiration);
+		log.trace("Token is added to the local cache for username: {}", userDetails.getUsername());
+
+		return Jwts.builder()
+				.claim("sub", userDetails.getUsername())
+				.claim("iat", now.getTime())
+				.claim("exp", expiryDate.getTime())
+				.claim("type", type)
+				.signWith(secretKey, SignatureAlgorithm.HS512)
+				.compact();
 	}
 
 }

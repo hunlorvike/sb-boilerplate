@@ -15,6 +15,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 
 import hun.lorvike.boilerplate.security.GetUserArgumentResolver;
+import hun.lorvike.boilerplate.utils.constrant.Security;
 import io.swagger.v3.oas.models.OpenAPI;
 
 import java.util.List;
@@ -40,22 +41,21 @@ public class AppConfig implements WebMvcConfigurer {
 	}
 
 	@Bean
-	public OpenAPI customOpenAPI(@Value("${spring.application.name}") String appName,
-			@Value("${spring.application.description}") String appDesc,
-			@Value("${spring.application.version}") String appVer) {
-		return new OpenAPI()
-				.components(new Components()
-						.addSecuritySchemes("Bearer", new SecurityScheme()
-								.name("Bearer")
-								.type(SecurityScheme.Type.HTTP)
-								.scheme("Bearer")
-								.bearerFormat("JWT")))
-				.info(new Info().title(appName).version(appVer).description(appDesc)
-						.termsOfService("https:www.hunglorvike.com")
-						.license(new License().name("Apache 2.0")
-								.url("https://springdoc.org")));
-	}
-
+    public OpenAPI customOpenAPI(@Value("${spring.application.name}") String appName,
+            @Value("${spring.application.description}") String appDesc,
+            @Value("${spring.application.version}") String appVer) {
+        return new OpenAPI()
+                .components(new Components()
+                        .addSecuritySchemes(Security.BEARER_SCHEME, new SecurityScheme()
+                                .name(Security.BEARER_SCHEME)
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme(Security.BEARER_SCHEME)
+                                .bearerFormat("JWT")))
+                .info(new Info().title(appName).version(appVer).description(appDesc)
+                        .termsOfService("https:www.hunglorvike.com")
+                        .license(new License().name("Apache 2.0")
+                                .url("https://springdoc.org")));
+    }
 	@Override
 	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
 		resolvers.add(new GetUserArgumentResolver());
