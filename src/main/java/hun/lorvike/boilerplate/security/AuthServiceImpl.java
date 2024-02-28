@@ -1,11 +1,11 @@
 package hun.lorvike.boilerplate.security;
 
-import hun.lorvike.boilerplate.configurations.enums.ERole;
 import hun.lorvike.boilerplate.dtos.auth.LoginDto;
 import hun.lorvike.boilerplate.dtos.auth.RegisterDto;
 import hun.lorvike.boilerplate.dtos.auth.ResLoginDto;
 import hun.lorvike.boilerplate.entities.User;
 import hun.lorvike.boilerplate.repositories.IUserRepository;
+import hun.lorvike.boilerplate.utils.enums.ERole;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

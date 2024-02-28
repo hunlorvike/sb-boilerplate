@@ -247,6 +247,7 @@ public class JwtService implements IJwtService {
 				.claim("iat", now.getTime())
 				.claim("exp", expiryDate.getTime())
 				.claim("type", type)
+				.claim("role", userDetails.getAuthorities())
 				.signWith(secretKey, SignatureAlgorithm.HS512)
 				.compact();
 	}

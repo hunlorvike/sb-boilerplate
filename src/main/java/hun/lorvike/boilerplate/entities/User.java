@@ -1,6 +1,6 @@
 package hun.lorvike.boilerplate.entities;
 
-import hun.lorvike.boilerplate.configurations.enums.ERole;
+import hun.lorvike.boilerplate.utils.enums.ERole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

@@ -48,6 +48,8 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                 if (userOptional.isPresent()) {
                     performAuthentication(request, response, userOptional.get());
                 }
+            } else {
+                log.info("No valid token found in the Authorization header. Allowing the request to proceed without authentication.");
             }
         } catch (ExpiredJwtException e) {
             handleJwtException(response, "JWT token expired", e.getClaims().getSubject());
@@ -64,9 +66,10 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private void performAuthentication(HttpServletRequest request, HttpServletResponse response, User user)
             throws IOException {
         UserDetails userDetails = User.build(user);
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
+        UsernamePasswordAuthenticationToken  authentication = new UsernamePasswordAuthenticationToken(
                 userDetails, userDetails.getPassword(), userDetails.getAuthorities());
 
+        authentication.setDetails(userDetails);
         try {
             Authentication authenticated = authenticationManager.authenticate(authentication);
 

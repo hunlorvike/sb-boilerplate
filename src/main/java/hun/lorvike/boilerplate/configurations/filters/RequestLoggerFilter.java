@@ -6,10 +6,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
+import org.springframework.web.util.WebUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
 @Component
@@ -22,7 +25,7 @@ public class RequestLoggerFilter implements Filter {
         UUID uniqueId = UUID.randomUUID();
         MDC.put("requestId", uniqueId.toString());
 
-        HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
+        HttpServletRequest httpServletRequest = new ContentCachingRequestWrapper((HttpServletRequest) servletRequest);
         HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
 
         log.info("Received request [{} {}] from IP address {}", httpServletRequest.getMethod(), httpServletRequest.getRequestURI(), httpServletRequest.getRemoteAddr());
@@ -32,7 +35,7 @@ public class RequestLoggerFilter implements Filter {
 
         ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(httpServletResponse);
 
-        filterChain.doFilter(servletRequest, responseWrapper);
+        filterChain.doFilter(httpServletRequest, responseWrapper);
 
         log.info("Response status: {}", responseWrapper.getStatus());
         log.info("Response time: {} ms", System.currentTimeMillis() - startTime);
@@ -44,15 +47,14 @@ public class RequestLoggerFilter implements Filter {
         MDC.clear();
     }
 
-    private String getRequestBody(HttpServletRequest request) throws IOException {
-        StringBuilder stringBuilder = new StringBuilder();
-        try (BufferedReader bufferedReader = request.getReader()) {
-            char[] charBuffer = new char[1024];
-            int bytesRead;
-            while ((bytesRead = bufferedReader.read(charBuffer)) != -1) {
-                stringBuilder.append(charBuffer, 0, bytesRead);
+    private String getRequestBody(HttpServletRequest request) throws UnsupportedEncodingException {
+        ContentCachingRequestWrapper wrapper = WebUtils.getNativeRequest(request, ContentCachingRequestWrapper.class);
+        if (wrapper != null) {
+            byte[] buf = wrapper.getContentAsByteArray();
+            if (buf.length > 0) {
+                return new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
             }
         }
-        return stringBuilder.toString();
+        return "";
     }
 }
