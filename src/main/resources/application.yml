@@ -42,5 +42,7 @@ springdoc:
     operations-sorter: alpha
     tags-sorter: alpha
     path: /swagger-ui
+    disable-swagger-default-url: true
   show-actuator: true
+
 

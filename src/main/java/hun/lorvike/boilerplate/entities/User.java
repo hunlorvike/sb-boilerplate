@@ -38,7 +38,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private ERole role = ERole.USER;
 
-    @Column(name = "refresh_token", nullable = true)
+    @Column(name = "refresh_token", nullable = true, columnDefinition = "TEXT")
     private String refreshToken;
 
     @CreationTimestamp
@@ -90,9 +90,9 @@ public class User implements UserDetails {
                 .password(user.getPassword())
                 .roles(user.getRole().name())
                 .disabled(!user.isEnabled())
-                .accountExpired(true)
-                .credentialsExpired(true)
-                .accountLocked(true)
+                .accountExpired(false)
+                .credentialsExpired(false)
+                .accountLocked(false)
                 .authorities(authorities)
                 .build();
     }

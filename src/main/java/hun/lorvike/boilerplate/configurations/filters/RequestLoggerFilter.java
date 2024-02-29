@@ -10,7 +10,6 @@ import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import org.springframework.web.util.WebUtils;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.UUID;
@@ -25,36 +24,58 @@ public class RequestLoggerFilter implements Filter {
         UUID uniqueId = UUID.randomUUID();
         MDC.put("requestId", uniqueId.toString());
 
-        HttpServletRequest httpServletRequest = new ContentCachingRequestWrapper((HttpServletRequest) servletRequest);
-        HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
+        ContentCachingRequestWrapper requestWrapper = new ContentCachingRequestWrapper(request);
 
-        log.info("Received request [{} {}] from IP address {}", httpServletRequest.getMethod(), httpServletRequest.getRequestURI(), httpServletRequest.getRemoteAddr());
-        log.info("Request content type is {}", httpServletRequest.getContentType());
+        ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper((HttpServletResponse) servletResponse);
 
-        log.info("Request payload: {}", getRequestBody(httpServletRequest));
+        try {
+            filterChain.doFilter(requestWrapper, responseWrapper);
+        } finally {
+            log.info("Received request [{} {}] from IP address {}", request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
+            log.info("Request content type is {}", requestWrapper.getContentType());
 
-        ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(httpServletResponse);
+            String requestBody = getRequestBody(requestWrapper);
+            if (requestBody != null) {
+                log.info("Request payload: {}", requestBody);
+            }
 
-        filterChain.doFilter(httpServletRequest, responseWrapper);
+            log.info("Response status: {}", responseWrapper.getStatus());
+            log.info("Response time: {} ms", System.currentTimeMillis() - startTime);
 
-        log.info("Response status: {}", responseWrapper.getStatus());
-        log.info("Response time: {} ms", System.currentTimeMillis() - startTime);
+            String responseBody = getResponseBody(responseWrapper);
+            if (responseBody != null) {
+                log.info("Response payload: {}", responseBody);
+            }
 
-        responseWrapper.setHeader("requestId", uniqueId.toString());
-        responseWrapper.copyBodyToResponse();
-        log.info("Response header is set with uuid {}", responseWrapper.getHeader("requestId"));
-
-        MDC.clear();
+            responseWrapper.copyBodyToResponse();
+            MDC.clear();
+        }
     }
 
-    private String getRequestBody(HttpServletRequest request) throws UnsupportedEncodingException {
-        ContentCachingRequestWrapper wrapper = WebUtils.getNativeRequest(request, ContentCachingRequestWrapper.class);
-        if (wrapper != null) {
-            byte[] buf = wrapper.getContentAsByteArray();
-            if (buf.length > 0) {
-                return new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
+    private String getRequestBody(ContentCachingRequestWrapper requestWrapper) {
+        byte[] buf = requestWrapper.getContentAsByteArray();
+        if (buf.length > 0) {
+            try {
+                return new String(buf, 0, buf.length, requestWrapper.getCharacterEncoding());
+            } catch (UnsupportedEncodingException e) {
+                log.error("Error reading request body", e);
             }
         }
-        return "";
+        return null;
     }
+
+    private String getResponseBody(ContentCachingResponseWrapper responseWrapper) {
+        byte[] buf = responseWrapper.getContentAsByteArray();
+        if (buf.length > 0) {
+            try {
+                return new String(buf, 0, buf.length, responseWrapper.getCharacterEncoding());
+            } catch (UnsupportedEncodingException e) {
+                log.error("Error reading response body", e);
+            }
+        }
+        return null;
+    }
+
+
 }

@@ -25,12 +25,12 @@ import java.util.Optional;
 @Slf4j
 @RequiredArgsConstructor
 public class CustomAuthenticationManager implements AuthenticationManager {
-    private final IUserRepository IUserRepository;
+    private final IUserRepository userRepository;
 
     @Override
     @Transactional
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        Optional<User> userOptional = IUserRepository.findByEmail(authentication.getName());
+        Optional<User> userOptional = userRepository.findByEmail(authentication.getName());
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();

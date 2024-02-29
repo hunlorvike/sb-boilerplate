@@ -10,12 +10,12 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Date;
 import java.util.Optional;
@@ -27,6 +27,7 @@ public class AuthServiceImpl implements IAuthService {
     private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final IJwtService jwtService;
+    private final UserDetailsService userDetailsService;
 
     @Override
     @Transactional(rollbackOn = Exception.class)
@@ -37,7 +38,7 @@ public class AuthServiceImpl implements IAuthService {
 
             if (userOptional.isPresent()) {
                 log.error("User with email {} already exists.", registerDto.getEmail());
-                throw new DataIntegrityViolationException("User with the provided email already exists");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "User with the provided email already exists");
             }
 
             User newUser = new User();
@@ -55,8 +56,10 @@ public class AuthServiceImpl implements IAuthService {
             log.info("User registered successfully with email: {}", registerDto.getEmail());
             return savedUser;
 
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Data integrity violation during user registration", e);
         } catch (Exception e) {
-            throw new RuntimeException("Unexpected error during user registration", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error during user registration", e);
         }
     }
 
@@ -67,32 +70,33 @@ public class AuthServiceImpl implements IAuthService {
             Optional<User> userOptional = userRepository.findByEmail(loginDto.getEmail());
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
-                UserDetails userDetails = User.build(user);
+                if (passwordEncoder.matches(loginDto.getPassword(), user.getPassword())) {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
 
-                Authentication authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, userDetails.getPassword(), userDetails.getAuthorities());
+                    String accessToken = jwtService.generateToken(userDetails);
+                    String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    Date now = new Date();
+                    long expirationTime = 3600000L;
+                    Date expirationDate = new Date(now.getTime() + expirationTime);
 
-                String accessToken = jwtService.generateToken(userDetails);
-                String refreshToken = jwtService.generateRefreshToken(userDetails);
+                    ResLoginDto resLoginDto = new ResLoginDto();
+                    resLoginDto.setAccessToken(accessToken);
+                    resLoginDto.setRefreshToken(refreshToken);
+                    resLoginDto.setTokenType("Bearer");
+                    resLoginDto.setExpiresIn(expirationDate.getTime());
 
-                Date now = new Date();
-                long expirationTime = 3600000L;
-                Date expirationDate = new Date(now.getTime() + expirationTime);
-
-                ResLoginDto resLoginDto = new ResLoginDto();
-                resLoginDto.setAccessToken(accessToken);
-                resLoginDto.setRefreshToken(refreshToken);
-                resLoginDto.setTokenType("Bearer");
-                resLoginDto.setExpiresIn(expirationDate.getTime());
-
-                log.info("User authenticated successfully with email: {}", loginDto.getEmail());
-                return resLoginDto;
+                    log.info("User authenticated successfully with email: {}", loginDto.getEmail());
+                    return resLoginDto;
+                } else {
+                    log.warn("Incorrect username or password for user with email: {}", loginDto.getEmail());
+                    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect username or password");
+                }
             }
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Authentication failed for user with email: {}", loginDto.getEmail(), e);
-            throw new RuntimeException("Authentication failed", e);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Incorrect username or password", e);
         }
         return null;
     }
