@@ -10,10 +10,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +25,7 @@ public class AuthServiceImpl implements IAuthService {
     private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final IJwtService jwtService;
+    private final UserDetailsService userDetailsService;
 
     @Override
     @Transactional(rollbackOn = Exception.class)
@@ -67,12 +66,7 @@ public class AuthServiceImpl implements IAuthService {
             Optional<User> userOptional = userRepository.findByEmail(loginDto.getEmail());
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
-                UserDetails userDetails = User.build(user);
-
-                Authentication authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, userDetails.getPassword(), userDetails.getAuthorities());
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
 
                 String accessToken = jwtService.generateToken(userDetails);
                 String refreshToken = jwtService.generateRefreshToken(userDetails);

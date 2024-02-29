@@ -6,7 +6,7 @@ import hun.lorvike.boilerplate.dtos.auth.ResLoginDto;
 import hun.lorvike.boilerplate.entities.User;
 import hun.lorvike.boilerplate.security.IAuthService;
 import hun.lorvike.boilerplate.utils.constrants.Routes;
-import hun.lorvike.boilerplate.utils.constrants.Tags;
+import hun.lorvike.boilerplate.utils.constrants.SwaggerTags;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -21,7 +21,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = Tags.AUTH_TAG, description = "Auth API")
+@Tag(name = SwaggerTags.AUTH_TAG, description = "Auth API")
 public class AuthController {
     private final IAuthService iAuthService;
 

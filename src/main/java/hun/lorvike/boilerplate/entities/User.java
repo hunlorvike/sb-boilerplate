@@ -90,9 +90,9 @@ public class User implements UserDetails {
                 .password(user.getPassword())
                 .roles(user.getRole().name())
                 .disabled(!user.isEnabled())
-                .accountExpired(true)
-                .credentialsExpired(true)
-                .accountLocked(true)
+                .accountExpired(false)
+                .credentialsExpired(false)
+                .accountLocked(false)
                 .authorities(authorities)
                 .build();
     }

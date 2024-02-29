@@ -22,7 +22,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
@@ -72,20 +71,18 @@ public class WebSecurityConfig {
                 .headers(config -> config.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers(HttpMethod.GET, PUBLIC_URLS).permitAll()
                         .requestMatchers(PUBLIC_URLS).permitAll()
-                        .requestMatchers(PRIVATE_URLS).hasAnyRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, PRIVATE_URLS).hasAnyRole("MANAGER")
-                        .requestMatchers(HttpMethod.POST, PRIVATE_URLS).hasAnyRole("MANAGER")
-                        .requestMatchers(HttpMethod.PUT, PRIVATE_URLS).hasAnyRole("MANAGER")
-                        .requestMatchers(HttpMethod.DELETE, PRIVATE_URLS).hasAnyRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, PRIVATE_URLS).hasAnyRole(ERole.MANAGER.name(), ERole.USER.name(), ERole.ADMIN.name())
+                        .requestMatchers(HttpMethod.POST, PRIVATE_URLS).hasAnyRole(ERole.MANAGER.name(), ERole.ADMIN.name())
+                        .requestMatchers(HttpMethod.PUT, PRIVATE_URLS).hasAnyRole(ERole.MANAGER.name(), ERole.ADMIN.name())
+                        .requestMatchers(HttpMethod.PATCH, PRIVATE_URLS).hasAnyRole(ERole.MANAGER.name(), ERole.ADMIN.name())
                         .anyRequest().authenticated())
                 .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .formLogin(Customizer.withDefaults())
                 .httpBasic(Customizer.withDefaults())
                 .logout(Customizer.withDefaults())
                 .exceptionHandling(config -> config
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler()))
                 .build();
     }
