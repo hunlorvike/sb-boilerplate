@@ -21,7 +21,6 @@ spring:
       hibernate.format_sql: true
 
 app:
-  url: http://localhost:${server.port}
   secret: aLongSecretStringWhoseBitnessIsEqualToOrGreaterThanTheBitnessOfTheTokenEncryptionAlgorithm
   jwt:
     token:

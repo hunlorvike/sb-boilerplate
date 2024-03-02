@@ -8,7 +8,6 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
-import org.springframework.web.util.WebUtils;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -57,7 +56,7 @@ public class RequestLoggerFilter implements Filter {
         byte[] buf = requestWrapper.getContentAsByteArray();
         if (buf.length > 0) {
             try {
-                return new String(buf, 0, buf.length, requestWrapper.getCharacterEncoding());
+                return new String(buf, requestWrapper.getCharacterEncoding());
             } catch (UnsupportedEncodingException e) {
                 log.error("Error reading request body", e);
             }
@@ -69,13 +68,11 @@ public class RequestLoggerFilter implements Filter {
         byte[] buf = responseWrapper.getContentAsByteArray();
         if (buf.length > 0) {
             try {
-                return new String(buf, 0, buf.length, responseWrapper.getCharacterEncoding());
+                return new String(buf, responseWrapper.getCharacterEncoding());
             } catch (UnsupportedEncodingException e) {
                 log.error("Error reading response body", e);
             }
         }
         return null;
     }
-
-
 }
