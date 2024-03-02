@@ -22,7 +22,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = SwaggerTags.AUTH_TAG, description = "Auth API")
+<<<<<<< HEAD
 @hun.lorvike.boilerplate.configurations.ApiResponse
+=======
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
 public class AuthController {
     private final IAuthService iAuthService;
 

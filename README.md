@@ -6,16 +6,16 @@
 - Spring Boot 3.1
 - Spring Security
 - Spring Data JPA
-- Spring Data Redis
-- Hibernate
+- Spring Data Redis - on going
+- Hibernate - on going
 - JWT Authentication
 - PostgreSQL
-- Redis
-- Liquibase
+- Redis - on going
+- Liquibase - on going
 - Lombok
 - Swagger
-- JUnit 5
-- Mockito
+- JUnit 5 - on going
+- Mockito - on going
 
 ### Requirements
 - Java 17

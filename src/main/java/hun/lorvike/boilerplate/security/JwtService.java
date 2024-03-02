@@ -4,9 +4,13 @@ import hun.lorvike.boilerplate.configurations.JwtConfig;
 import hun.lorvike.boilerplate.entities.User;
 import hun.lorvike.boilerplate.repositories.IUserRepository;
 import io.jsonwebtoken.*;
+<<<<<<< HEAD
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.security.*;
+=======
+import io.jsonwebtoken.security.Keys;
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -254,7 +258,11 @@ public class JwtService implements IJwtService {
                 .claim("exp", expiryDate.getTime())
                 .claim("type", type)
                 .claim("role", userDetails.getAuthorities())
+<<<<<<< HEAD
                 .signWith(this.secretKey, SignatureAlgorithm.HS512)
+=======
+                .signWith(secretKey, SignatureAlgorithm.HS512)
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
                 .compact();
     }
 }

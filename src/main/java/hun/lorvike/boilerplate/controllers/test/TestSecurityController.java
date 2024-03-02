@@ -6,8 +6,11 @@ import hun.lorvike.boilerplate.utils.constrants.SwaggerTags;
 import io.swagger.v3.oas.annotations.Operation;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+<<<<<<< HEAD
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+=======
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Slf4j
 @Tag(name = SwaggerTags.TEST_TAG, description = "Test API")
 public class TestSecurityController {
+<<<<<<< HEAD
     @GetMapping(Routes.ME)
     public User getUser(HttpServletRequest request) {
         User user = (User) request.getAttribute("user");
@@ -32,6 +36,8 @@ public class TestSecurityController {
         }
     }
 
+=======
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
     @Operation(summary = "Check if user has ROLE_USER", description = "Check if the authenticated user has the role USER.")
     @GetMapping(Routes.ROLE_USER)
     @PreAuthorize("hasRole('USER')")

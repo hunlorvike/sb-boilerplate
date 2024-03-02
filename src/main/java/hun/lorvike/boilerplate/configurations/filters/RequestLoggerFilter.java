@@ -28,17 +28,25 @@ public class RequestLoggerFilter implements Filter {
 
         ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper((HttpServletResponse) servletResponse);
 
+<<<<<<< HEAD
         try {
             filterChain.doFilter(requestWrapper, responseWrapper);
         } finally {
             log.info("Received request [{} {}] from IP address {}", request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
             log.info("Request content type is {}", requestWrapper.getContentType());
+=======
+        String requestBody = getRequestBody(httpServletRequest);
+        if (requestBody != null) {
+            log.info("Request payload: {}", requestBody);
+        }
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
 
             String requestBody = getRequestBody(requestWrapper);
             if (requestBody != null) {
                 log.info("Request payload: {}", requestBody);
             }
 
+<<<<<<< HEAD
             log.info("Response status: {}", responseWrapper.getStatus());
             log.info("Response time: {} ms", System.currentTimeMillis() - startTime);
 
@@ -48,10 +56,23 @@ public class RequestLoggerFilter implements Filter {
             }
 
             responseWrapper.copyBodyToResponse();
+=======
+        try {
+            filterChain.doFilter(httpServletRequest, responseWrapper);
+        } finally {
+            log.info("Response status: {}", responseWrapper.getStatus());
+            log.info("Response time: {} ms", System.currentTimeMillis() - startTime);
+
+            responseWrapper.setHeader("requestId", uniqueId.toString());
+            responseWrapper.copyBodyToResponse();
+            log.info("Response header is set with uuid {}", responseWrapper.getHeader("requestId"));
+
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
             MDC.clear();
         }
     }
 
+<<<<<<< HEAD
     private String getRequestBody(ContentCachingRequestWrapper requestWrapper) {
         byte[] buf = requestWrapper.getContentAsByteArray();
         if (buf.length > 0) {
@@ -74,5 +95,20 @@ public class RequestLoggerFilter implements Filter {
             }
         }
         return null;
+=======
+    private String getRequestBody(HttpServletRequest request) {
+        ContentCachingRequestWrapper wrapper = WebUtils.getNativeRequest(request, ContentCachingRequestWrapper.class);
+        if (wrapper != null) {
+            byte[] buf = wrapper.getContentAsByteArray();
+            if (buf.length > 0) {
+                try {
+                    return new String(buf, 0, buf.length, wrapper.getCharacterEncoding());
+                } catch (UnsupportedEncodingException e) {
+                    log.error("Error reading request body", e);
+                }
+            }
+        }
+        return null;
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
     }
 }

@@ -10,7 +10,10 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+<<<<<<< HEAD
 import org.springframework.http.HttpStatus;
+=======
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -70,6 +73,7 @@ public class AuthServiceImpl implements IAuthService {
             Optional<User> userOptional = userRepository.findByEmail(loginDto.getEmail());
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
+<<<<<<< HEAD
                 if (passwordEncoder.matches(loginDto.getPassword(), user.getPassword())) {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
 
@@ -79,6 +83,9 @@ public class AuthServiceImpl implements IAuthService {
                     Date now = new Date();
                     long expirationTime = 3600000L;
                     Date expirationDate = new Date(now.getTime() + expirationTime);
+=======
+                UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+>>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
 
                     ResLoginDto resLoginDto = new ResLoginDto();
                     resLoginDto.setAccessToken(accessToken);
