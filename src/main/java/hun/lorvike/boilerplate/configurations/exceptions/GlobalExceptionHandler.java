@@ -1,4 +1,4 @@
-package hun.lorvike.boilerplate.configurations;
+package hun.lorvike.boilerplate.configurations.exceptions;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

@@ -23,13 +23,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.server.ResponseStatusException;
 
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
-public class WebSecurityConfig {
+public class SecurityConfig {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     private final AuthenticationFilter authenticationFilter;
@@ -40,7 +41,7 @@ public class WebSecurityConfig {
 
     private static final String[] PUBLIC_URLS = {
             "/",
-            "/api/auth/**",
+            "/api/**",
             "/public/**",
             "/assets/**",
             "/api-docs/**",
@@ -87,8 +88,7 @@ public class WebSecurityConfig {
 
     private AccessDeniedHandler accessDeniedHandler() {
         return (request, response, accessDeniedException) -> {
-            response.setStatus(HttpStatus.FORBIDDEN.value());
-            response.getWriter().write("Access denied. You don't have the required role.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied. You don't have the required role.");
         };
     }
 

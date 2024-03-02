@@ -1,4 +1,4 @@
-package hun.lorvike.boilerplate.configurations;
+package hun.lorvike.boilerplate.configurations.configs;
 
 import hun.lorvike.boilerplate.utils.constrants.Security;
 import io.swagger.v3.oas.models.Components;

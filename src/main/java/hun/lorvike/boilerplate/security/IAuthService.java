@@ -5,9 +5,11 @@ import hun.lorvike.boilerplate.dtos.auth.RegisterDto;
 import hun.lorvike.boilerplate.dtos.auth.ResLoginDto;
 import hun.lorvike.boilerplate.entities.User;
 
+import java.util.concurrent.CompletableFuture;
+
 public interface IAuthService {
 
-    User registerUser(RegisterDto registerDto);
+    CompletableFuture<User> registerUserAsync(RegisterDto registerDto);
 
-    ResLoginDto authenticateUser(LoginDto loginDto);
+    CompletableFuture<ResLoginDto> authenticateUserAsync(LoginDto loginDto);
 }

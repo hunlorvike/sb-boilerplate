@@ -1,16 +1,12 @@
 package hun.lorvike.boilerplate.security;
 
-import hun.lorvike.boilerplate.configurations.JwtConfig;
+import hun.lorvike.boilerplate.configurations.configs.JwtConfig;
 import hun.lorvike.boilerplate.entities.User;
 import hun.lorvike.boilerplate.repositories.IUserRepository;
 import io.jsonwebtoken.*;
-<<<<<<< HEAD
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
-import io.jsonwebtoken.security.*;
-=======
 import io.jsonwebtoken.security.Keys;
->>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +15,10 @@ import java.util.Date;
 import java.util.Optional;
 import javax.crypto.SecretKey;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Slf4j
@@ -133,15 +131,14 @@ public class JwtService implements IJwtService {
                 String userAgentHeader = httpServletRequest.getHeader("User-Agent");
                 if (userAgentHeader == null || userAgentHeader.isEmpty()) {
                     log.error("[JWT] User-Agent header is missing");
-                    return false;
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User-Agent header is missing");
                 }
             }
+            return !isTokenExpired(token);
         } catch (Exception e) {
             log.error("Error validating token", e);
-            return false;
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired token", e);
         }
-
-        return !isTokenExpired(token);
     }
 
     @Override
@@ -150,33 +147,31 @@ public class JwtService implements IJwtService {
             boolean isTokenValid = validateToken(token);
             if (!isTokenValid) {
                 log.error("[JWT] Token could not be found in local cache");
-                request.setAttribute("notfound", "Token is not found in cache");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token not found in cache");
             }
             return isTokenValid;
         } catch (UnsupportedJwtException e) {
             log.error("[JWT] Unsupported JWT token!");
-            request.setAttribute("unsupported", "Unsupported JWT token!");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unsupported JWT token", e);
         } catch (MalformedJwtException e) {
             log.error("[JWT] Invalid JWT token!");
-            request.setAttribute("invalid", "Invalid JWT token!");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid JWT token", e);
         } catch (ExpiredJwtException e) {
             log.error("[JWT] Expired JWT token!");
-            request.setAttribute("expired", "Expired JWT token!");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Expired JWT token", e);
         } catch (IllegalArgumentException e) {
             log.error("[JWT] Jwt claims string is empty");
-            request.setAttribute("illegal", "JWT claims string is empty.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "JWT claims string is empty", e);
         } catch (SignatureException e) {
             log.error("[JWT] Invalid token signature");
-            request.setAttribute("signature_invalid", "Invalid token signature");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token signature", e);
         } catch (PrematureJwtException e) {
             log.error("[JWT] Premature JWT token");
-            request.setAttribute("premature", "Premature JWT token");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Premature JWT token", e);
         } catch (Exception e) {
             log.error("[JWT] An unexpected error occurred during token validation");
-            request.setAttribute("unexpected_error", "An unexpected error occurred during token validation");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unexpected error during token validation", e);
         }
-
-        return false;
     }
 
     @Override
@@ -243,7 +238,7 @@ public class JwtService implements IJwtService {
             }
         } catch (Exception e) {
             log.error("Error refreshing access token if expired", e);
-            throw new JwtServiceException("Error refreshing access token if expired", e);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Error refreshing access token if expired", e);
         }
     }
 
@@ -258,11 +253,7 @@ public class JwtService implements IJwtService {
                 .claim("exp", expiryDate.getTime())
                 .claim("type", type)
                 .claim("role", userDetails.getAuthorities())
-<<<<<<< HEAD
                 .signWith(this.secretKey, SignatureAlgorithm.HS512)
-=======
-                .signWith(secretKey, SignatureAlgorithm.HS512)
->>>>>>> 22acfaa4cdb0d5f0597cb69081d70d53a4efe2c1
                 .compact();
     }
 }

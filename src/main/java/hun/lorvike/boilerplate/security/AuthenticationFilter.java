@@ -6,6 +6,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +23,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.io.IOException;
 import java.util.Optional;
 
@@ -44,25 +47,22 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                 String username = iJwtService.extractUsername(token);
                 Optional<User> userOptional = userRepository.findByEmail(username);
 
-                if (userOptional.isPresent()) {
-                    performAuthentication(request, response, userOptional.get());
-                }
+                userOptional.ifPresent(user -> performAuthentication(request, response, user));
             } else {
                 log.info("No valid token found in the Authorization header. Allowing the request to proceed without authentication.");
             }
         } catch (ExpiredJwtException e) {
-            handleJwtException(response, "JWT token expired", e.getClaims().getSubject());
+            handleJwtException("JWT token expired", e.getClaims().getSubject());
             return;
         } catch (JwtException e) {
-            handleJwtException(response, "Invalid JWT token", e.getMessage());
+            handleJwtException("Invalid JWT token", e.getMessage());
             return;
         }
         log.info("Request from authentication filter {}", request.getRemoteAddr());
         filterChain.doFilter(request, response);
     }
 
-    private void performAuthentication(HttpServletRequest request, HttpServletResponse response, User user)
-            throws IOException {
+    private void performAuthentication(HttpServletRequest request, HttpServletResponse response, User user) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                 userDetails, userDetails.getPassword(), userDetails.getAuthorities());
@@ -78,13 +78,12 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             log.info("User {} successfully authenticated", user.getUsername());
         } catch (AuthenticationException e) {
             log.warn("Authentication failed for user {}: {}", user.getUsername(), e.getMessage());
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication failed");
         }
     }
 
-    private void handleJwtException(HttpServletResponse response, String errorMessage, String subject)
-            throws IOException {
+    private void handleJwtException(String errorMessage, String subject) {
         log.warn("{} for user {}", errorMessage, subject);
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, errorMessage);
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, errorMessage);
     }
 }
