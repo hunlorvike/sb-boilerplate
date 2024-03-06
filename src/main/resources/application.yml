@@ -19,6 +19,21 @@ spring:
     show-sql: true
     properties:
       hibernate.format_sql: true
+      hibernate:
+        show_sql: true
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    default-encoding: UTF-8
+    username: viethung0106.developer@gmail.com
+    password: xwkvhbfbfnhsgugl
+    properties:
+      smtp:
+        auth: true
+        starttls:
+          enable: true
 
 app:
   secret: aLongSecretStringWhoseBitnessIsEqualToOrGreaterThanTheBitnessOfTheTokenEncryptionAlgorithm
@@ -43,5 +58,3 @@ springdoc:
     path: /swagger-ui
     disable-swagger-default-url: true
   show-actuator: true
-
-

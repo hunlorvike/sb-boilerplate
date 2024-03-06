@@ -5,7 +5,10 @@ import hun.lorvike.boilerplate.dtos.auth.LoginDto;
 import hun.lorvike.boilerplate.dtos.auth.RegisterDto;
 import hun.lorvike.boilerplate.dtos.auth.ResLoginDto;
 import hun.lorvike.boilerplate.entities.User;
+import hun.lorvike.boilerplate.entities.VerificationToken;
 import hun.lorvike.boilerplate.repositories.IUserRepository;
+import hun.lorvike.boilerplate.services.impls.EmailServiceImpl;
+import hun.lorvike.boilerplate.utils.AuthUtil;
 import hun.lorvike.boilerplate.utils.enums.ERole;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +18,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -61,15 +66,25 @@ public class AuthServiceImpl implements IAuthService {
                 User savedUser = userRepository.save(newUser);
                 UserDetails userDetails = User.build(savedUser);
 
+                String verificationToken = AuthUtil.generateVerificationToken(savedUser);
+
+                String verificationLink = "http://localhost:8080/api/auth/verify-email?userId=" + savedUser.getId() + "&token=" + verificationToken;
+                String emailBody = "Please click the following link to verify your email: " + verificationLink;
+
+                boolean status = EmailServiceImpl.sendVerificationEmail(savedUser, "Verify Email", emailBody);
+
+                if (!status) {
+                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to send verification email. Rolling back transaction.");
+                }
+
                 String refreshToken = jwtService.generateRefreshToken(userDetails);
                 savedUser.setRefreshToken(refreshToken);
                 log.info("User registered successfully with email: {}", registerDto.getEmail());
                 return savedUser;
-
             } catch (DataIntegrityViolationException e) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Data integrity violation during user registration", e);
             } catch (Exception e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error during user registration", e);
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error during user registration "+ e.getMessage());
             }
         });
     }
@@ -110,4 +125,27 @@ public class AuthServiceImpl implements IAuthService {
             return null;
         });
     }
+
+    @Override
+    public CompletableFuture<String> verifyEmail(Long userId, String token) {
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<User> userOptional = userRepository.findById(userId);
+
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+                VerificationToken verificationToken = user.getVerificationToken();
+
+                if (verificationToken != null && Objects.equals(verificationToken.getToken(), token)) {
+                    user.setEnabled(true);
+                    userRepository.save(user);
+                    return "Email verification successful. You can now log in.";
+                } else {
+                    return "Invalid verification token.";
+                }
+            } else {
+                return "User not found.";
+            }
+        });
+    }
+
 }

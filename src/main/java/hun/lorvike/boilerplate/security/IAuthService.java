@@ -12,4 +12,6 @@ public interface IAuthService {
     CompletableFuture<User> registerUserAsync(RegisterDto registerDto);
 
     CompletableFuture<ResLoginDto> authenticateUserAsync(LoginDto loginDto);
+
+    CompletableFuture<String> verifyEmail(Long userId, String token);
 }

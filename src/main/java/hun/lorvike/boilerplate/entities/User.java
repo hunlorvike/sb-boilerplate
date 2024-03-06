@@ -1,5 +1,6 @@
 package hun.lorvike.boilerplate.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import hun.lorvike.boilerplate.utils.enums.ERole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -41,6 +42,9 @@ public class User implements UserDetails {
     @Column(name = "refresh_token", nullable = true, columnDefinition = "TEXT")
     private String refreshToken;
 
+    @Column(name = "enabled")
+    private boolean enabled = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -51,6 +55,11 @@ public class User implements UserDetails {
 
     @Column(name = "delete_at", nullable = true)
     private LocalDateTime deleteAt;
+
+    @JsonIgnore
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JoinColumn(nullable = false, name = "verify_id")
+    private VerificationToken verificationToken;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

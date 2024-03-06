@@ -16,11 +16,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.ErrorResponse;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -58,5 +57,10 @@ public class AuthController {
     })
     public ResLoginDto login(@Valid @RequestBody LoginDto loginDto) {
         return iAuthService.authenticateUserAsync(loginDto).join();
+    }
+
+    @GetMapping("/api/auth/verify-email")
+    public String verifyEmail(@RequestParam("userId") Long userId, @RequestParam("token") String token) {
+        return iAuthService.verifyEmail(userId, token).join();
     }
 }
