@@ -1,4 +1,4 @@
-package hun.lorvike.boilerplate.dtos.auth;
+package hun.lorvike.boilerplate.dtos.auth.res;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

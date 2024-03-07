@@ -3,7 +3,9 @@ package hun.lorvike.boilerplate.controllers.auth;
 import hun.lorvike.boilerplate.configurations.FormResponse;
 import hun.lorvike.boilerplate.dtos.auth.LoginDto;
 import hun.lorvike.boilerplate.dtos.auth.RegisterDto;
-import hun.lorvike.boilerplate.dtos.auth.ResLoginDto;
+import hun.lorvike.boilerplate.dtos.auth.res.ResLoginDto;
+import hun.lorvike.boilerplate.dtos.auth.res.ResRegisterDto;
+import hun.lorvike.boilerplate.dtos.auth.res.ResVerifyDto;
 import hun.lorvike.boilerplate.entities.User;
 import hun.lorvike.boilerplate.security.IAuthService;
 import hun.lorvike.boilerplate.utils.constrants.Routes;
@@ -18,8 +20,6 @@ import org.springframework.http.MediaType;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -40,7 +40,7 @@ public class AuthController {
                     description = "Validation failed",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public User register(@Valid @RequestBody RegisterDto registerDto) {
+    public ResRegisterDto register(@Valid @RequestBody RegisterDto registerDto) {
         return iAuthService.registerUserAsync(registerDto).join();
     }
 
@@ -59,8 +59,8 @@ public class AuthController {
         return iAuthService.authenticateUserAsync(loginDto).join();
     }
 
-    @GetMapping("/api/auth/verify-email")
-    public String verifyEmail(@RequestParam("userId") Long userId, @RequestParam("token") String token) {
+    @GetMapping("/verify-email")
+    public ResVerifyDto verifyEmail(@RequestParam("userId") Long userId, @RequestParam("token") String token) {
         return iAuthService.verifyEmail(userId, token).join();
     }
 }

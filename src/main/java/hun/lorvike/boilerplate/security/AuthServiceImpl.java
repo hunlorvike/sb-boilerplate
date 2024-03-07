@@ -3,10 +3,13 @@ package hun.lorvike.boilerplate.security;
 import hun.lorvike.boilerplate.configurations.configs.JwtConfig;
 import hun.lorvike.boilerplate.dtos.auth.LoginDto;
 import hun.lorvike.boilerplate.dtos.auth.RegisterDto;
-import hun.lorvike.boilerplate.dtos.auth.ResLoginDto;
+import hun.lorvike.boilerplate.dtos.auth.res.ResLoginDto;
+import hun.lorvike.boilerplate.dtos.auth.res.ResRegisterDto;
+import hun.lorvike.boilerplate.dtos.auth.res.ResVerifyDto;
 import hun.lorvike.boilerplate.entities.User;
 import hun.lorvike.boilerplate.entities.VerificationToken;
 import hun.lorvike.boilerplate.repositories.IUserRepository;
+import hun.lorvike.boilerplate.repositories.IVerificationToken;
 import hun.lorvike.boilerplate.services.impls.EmailServiceImpl;
 import hun.lorvike.boilerplate.utils.AuthUtil;
 import hun.lorvike.boilerplate.utils.enums.ERole;
@@ -18,7 +21,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Objects;
@@ -34,18 +36,21 @@ public class AuthServiceImpl implements IAuthService {
     private final IJwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final Long expirationToken;
+    private final IVerificationToken verificationTokenRepository;
 
-    public AuthServiceImpl(IUserRepository userRepository, PasswordEncoder passwordEncoder, IJwtService jwtService, UserDetailsService userDetailsService, JwtConfig jwtConfig) {
+
+    public AuthServiceImpl(IUserRepository userRepository, PasswordEncoder passwordEncoder, IJwtService jwtService, UserDetailsService userDetailsService, JwtConfig jwtConfig, IVerificationToken verificationTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.expirationToken = jwtConfig.getExpirationToken();
+        this.verificationTokenRepository = verificationTokenRepository;
     }
 
     @Override
     @Transactional(rollbackOn = Exception.class)
-    public CompletableFuture<User> registerUserAsync(RegisterDto registerDto) {
+    public CompletableFuture<ResRegisterDto> registerUserAsync(RegisterDto registerDto) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 log.info("Attempting to register user with email: {}", registerDto.getEmail());
@@ -66,25 +71,26 @@ public class AuthServiceImpl implements IAuthService {
                 User savedUser = userRepository.save(newUser);
                 UserDetails userDetails = User.build(savedUser);
 
-                String verificationToken = AuthUtil.generateVerificationToken(savedUser);
+                String token = AuthUtil.generateVerificationToken();
 
-                String verificationLink = "http://localhost:8080/api/auth/verify-email?userId=" + savedUser.getId() + "&token=" + verificationToken;
-                String emailBody = "Please click the following link to verify your email: " + verificationLink;
+                VerificationToken verificationToken = new VerificationToken();
+                verificationToken.setUser(savedUser);
+                verificationToken.setToken(token);
+                verificationTokenRepository.save(verificationToken);
 
-                boolean status = EmailServiceImpl.sendVerificationEmail(savedUser, "Verify Email", emailBody);
+                savedUser.setVerificationToken(verificationToken);
+                userRepository.save(savedUser);
 
-                if (!status) {
-                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to send verification email. Rolling back transaction.");
-                }
+                EmailServiceImpl.sendVerificationEmail(savedUser, token);
 
                 String refreshToken = jwtService.generateRefreshToken(userDetails);
                 savedUser.setRefreshToken(refreshToken);
                 log.info("User registered successfully with email: {}", registerDto.getEmail());
-                return savedUser;
+                return new ResRegisterDto("Registration successful. Check your email for verification instructions.");
             } catch (DataIntegrityViolationException e) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Data integrity violation during user registration", e);
             } catch (Exception e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error during user registration "+ e.getMessage());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error during user registration " + e.getMessage());
             }
         });
     }
@@ -127,7 +133,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
-    public CompletableFuture<String> verifyEmail(Long userId, String token) {
+    public CompletableFuture<ResVerifyDto> verifyEmail(Long userId, String token) {
         return CompletableFuture.supplyAsync(() -> {
             Optional<User> userOptional = userRepository.findById(userId);
 
@@ -138,12 +144,12 @@ public class AuthServiceImpl implements IAuthService {
                 if (verificationToken != null && Objects.equals(verificationToken.getToken(), token)) {
                     user.setEnabled(true);
                     userRepository.save(user);
-                    return "Email verification successful. You can now log in.";
+                    return new ResVerifyDto("Email verification successful. You can now log in.");
                 } else {
-                    return "Invalid verification token.";
+                    return new ResVerifyDto("Invalid verification token.");
                 }
             } else {
-                return "User not found.";
+                return new ResVerifyDto("User not found");
             }
         });
     }

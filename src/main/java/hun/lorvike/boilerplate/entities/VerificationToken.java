@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.ToString;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import java.util.Calendar;
 
 @Entity
 @Data
+@ToString
 @AllArgsConstructor
 public class VerificationToken {
     private static final int EXPIRATION = 60 * 24;
